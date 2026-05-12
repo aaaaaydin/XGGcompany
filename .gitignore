@@ -1,0 +1,12 @@
+/target/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+/.venv/
+/venv/
+/dist/
+/build/
+/tools/
+*.spec
+.DS_Store
