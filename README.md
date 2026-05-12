@@ -1,10 +1,43 @@
 # Win11 透明桌面小猫陪伴插件
 
-这是一个轻量级 Windows 11 桌面宠物 EXE：把已抠除背景的小猫视频转换成透明 PNG 帧后，程序会在桌面上显示一个不挡视野、可随时拖动、低内存占用的小猫动画窗口。
+这是一个 Windows 11 桌面宠物：把已抠除背景的小猫视频转换成透明 PNG 帧后，程序会在桌面上显示一个不挡视野、可随时拖动的小猫动画窗口。现在提供 **Python 版**，不需要安装 Rust。
 
 ## 为什么不用 Electron / WebView
 
-为了尽量少占内存，本项目使用 Rust + Win32 原生透明分层窗口，不内置浏览器内核。运行时只加载当前帧 PNG，不一次性把整段视频读进内存。
+为了避免 Electron / WebView 这类大运行时，本项目提供 Python + ctypes + Win32/GDI+ 原生透明分层窗口实现。Python 版不依赖 pywin32、Pillow、tkinter 或第三方包，运行时按帧加载 PNG，不一次性把整段视频读进内存。Rust 版仍保留作为可选的 EXE 构建方案。
+
+
+## 不想装 Rust：直接运行 Python 版
+
+你不需要安装 Rust，也不需要 Cargo。只要电脑有 Python 3，就可以在项目根目录运行：
+
+```bat
+py -3 desktop_cat.py
+```
+
+或者用项目自带的 CMD 启动脚本：
+
+```bat
+scripts\run-python-cat.cmd
+```
+
+Python 版使用标准库 `ctypes` 调 Win32/GDI+，不需要安装这些包：
+
+- 不需要 `pywin32`
+- 不需要 `Pillow`
+- 不需要 `tkinter`
+- 不需要 Rust / Cargo
+
+运行前仍然需要先准备好透明 PNG 帧，放在：
+
+```text
+assets/frames/frame_0001.png
+assets/frames/frame_0002.png
+assets/frames/frame_0003.png
+...
+```
+
+如果 Windows 没有 Python，可以安装 Python 官网的 Windows installer；这比安装 Rust 工具链小很多。
 
 ## 我只有视频，怎么转换成透明 PNG 序列？
 
@@ -85,10 +118,10 @@ assets/frames/frame_0003.png
 ...
 ```
 
-然后运行桌面小猫：
+然后运行桌面小猫（Python 版）：
 
-```powershell
-cargo run --release
+```bat
+py -3 desktop_cat.py
 ```
 
 如果生成出来的 PNG 仍然是黑底/白底/不透明，说明这个 MP4 可能只是“看起来透明”，但文件里没有真实 alpha；需要先用视频软件重新导出带 alpha 的视频，或导出透明 PNG 序列。
@@ -148,7 +181,9 @@ assets/frames/frame_0003.png
 
 ## 发给别人电脑：免安装 / 不用配置环境
 
-你只需要在**自己的电脑**上把 EXE 和透明 PNG 帧都准备好，然后打包成一个便携文件夹发给别人。别人电脑上不需要安装 Rust、Cargo、FFmpeg、Chocolatey，也不需要运行转换脚本。
+如果只是自己运行，推荐直接用 Python 版，不需要 Rust。
+
+如果要发给别人且对方不想装 Python，可以在一台配置较好的电脑上把 EXE 和透明 PNG 帧准备好，然后打包成一个便携文件夹发给别人。别人电脑上不需要安装 Rust、Cargo、FFmpeg、Chocolatey，也不需要运行转换脚本。
 
 PowerShell 不是运行桌面小猫的必要条件；它只是本项目提供的打包/转换辅助脚本。真正发给别人后，对方只需要双击 EXE。
 
@@ -192,7 +227,8 @@ powershell -ExecutionPolicy Bypass -File scripts\package-portable.ps1 -Zip
 
 ### 最推荐的分工
 
-- **你的电脑**：安装 Rust/FFmpeg，用来转换视频、编译、打包。
+- **低配置/自己运行**：用 Python 版，运行 `py -3 desktop_cat.py`。
+- **发给别人且不要装 Python**：找一台配置较好的电脑构建 EXE，再把 zip 发给别人。
 - **别人的电脑**：只解压 zip，双击 EXE。
 
 这样别人完全不用配置开发环境。
@@ -220,11 +256,21 @@ frames_dir = "assets/frames"
 
 ## 运行与打包
 
-开发运行：
+### Python 运行（推荐给低配置电脑）
 
-```powershell
-cargo run --release
+```bat
+py -3 desktop_cat.py
 ```
+
+或者：
+
+```bat
+scripts\run-python-cat.cmd
+```
+
+### Rust 生成 EXE（可选）
+
+如果你不想装 Rust，可以跳过这一节。只有在你想生成单独 EXE 时才需要。
 
 生成 EXE：
 
