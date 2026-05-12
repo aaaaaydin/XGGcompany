@@ -1,0 +1,6 @@
+/target/
+*.exe
+*.pdb
+.DS_Store
+/dist/
+/tools/
