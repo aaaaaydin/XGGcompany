@@ -110,6 +110,56 @@ assets/frames/frame_0003.png
 
 > 注意：如果源视频没有透明通道、也不是纯色背景，直接转 PNG 只会得到“带原背景”的 PNG。必须先用抠像/背景移除工具处理。
 
+
+## 发给别人电脑：免安装 / 不用配置环境
+
+你只需要在**自己的电脑**上把 EXE 和透明 PNG 帧都准备好，然后打包成一个便携文件夹发给别人。别人电脑上不需要安装 Rust、Cargo、FFmpeg、Chocolatey，也不需要运行转换脚本。
+
+目标电脑只需要收到这个结构：
+
+```text
+xgg-desktop-cat-portable\
+├─ xgg-desktop-cat.exe
+├─ config.toml
+└─ assets\
+   └─ frames\
+      ├─ frame_0001.png
+      ├─ frame_0002.png
+      └─ ...
+```
+
+> 注意：不要只发 `xgg-desktop-cat.exe`。程序运行时还需要同级目录里的 `config.toml` 和 `assets\frames\*.png`。
+
+### 一键打包便携版
+
+在你自己的 Windows 开发电脑上，先确认已经生成透明 PNG 帧，然后运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package-portable.ps1 -Build -Zip
+```
+
+脚本会：
+
+1. 运行 `cargo build --release` 编译 EXE。
+2. 复制 `xgg-desktop-cat.exe`、`config.toml`、`assets\frames\*.png`。
+3. 生成 `dist\xgg-desktop-cat-portable` 文件夹。
+4. 如果加了 `-Zip`，还会生成 `dist\xgg-desktop-cat-portable.zip`。
+
+然后你把这个 zip 发给别人，对方解压后双击 `xgg-desktop-cat.exe` 就能运行。
+
+如果你已经手动编译好了 EXE，也可以不加 `-Build`：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package-portable.ps1 -Zip
+```
+
+### 最推荐的分工
+
+- **你的电脑**：安装 Rust/FFmpeg，用来转换视频、编译、打包。
+- **别人的电脑**：只解压 zip，双击 EXE。
+
+这样别人完全不用配置开发环境。
+
 ## 配置
 
 编辑 `config.toml`：
