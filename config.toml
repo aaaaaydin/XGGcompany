@@ -1,0 +1,7 @@
+width = 260
+fps = 24
+topmost = true
+click_through = false
+start_x = 1200
+start_y = 620
+frames_dir = "assets/frames"
