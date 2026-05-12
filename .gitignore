@@ -1,6 +1,12 @@
 /target/
-*.exe
-*.pdb
-.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+/.venv/
+/venv/
 /dist/
+/build/
 /tools/
+*.spec
+.DS_Store
