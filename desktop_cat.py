@@ -24,6 +24,8 @@ class AppConfig:
         self.start_x = 1200
         self.start_y = 620
         self.frames_dir = Path("assets/frames")
+        self.tray_icon = True
+        self.start_hidden = False
 
 
 def load_config(path: Path = Path("config.toml")) -> AppConfig:
@@ -51,6 +53,10 @@ def load_config(path: Path = Path("config.toml")) -> AppConfig:
             config.start_y = _parse_int(value, config.start_y)
         elif key == "frames_dir":
             config.frames_dir = Path(value)
+        elif key == "tray_icon":
+            config.tray_icon = _parse_bool(value, config.tray_icon)
+        elif key == "start_hidden":
+            config.start_hidden = _parse_bool(value, config.start_hidden)
     return config
 
 
@@ -82,6 +88,7 @@ if sys.platform == "win32":
     gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     gdiplus = ctypes.WinDLL("gdiplus", use_last_error=True)
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
 
     LRESULT = getattr(wintypes, "LRESULT", ctypes.c_ssize_t)
     UINT_PTR = getattr(wintypes, "UINT_PTR", wintypes.WPARAM)
@@ -139,6 +146,17 @@ if sys.platform == "win32":
             ("SuppressExternalCodecs", wintypes.BOOL),
         ]
 
+    class NOTIFYICONDATAW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("hWnd", wintypes.HWND),
+            ("uID", wintypes.UINT),
+            ("uFlags", wintypes.UINT),
+            ("uCallbackMessage", wintypes.UINT),
+            ("hIcon", HICON),
+            ("szTip", wintypes.WCHAR * 128),
+        ]
+
     kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
     kernel32.GetModuleHandleW.restype = wintypes.HMODULE
     user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASSW)]
@@ -162,6 +180,8 @@ if sys.platform == "win32":
     user32.DefWindowProcW.restype = LRESULT
     user32.LoadCursorW.argtypes = [wintypes.HINSTANCE, ctypes.c_void_p]
     user32.LoadCursorW.restype = HCURSOR
+    user32.LoadIconW.argtypes = [wintypes.HINSTANCE, ctypes.c_void_p]
+    user32.LoadIconW.restype = HICON
     user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
     user32.SetTimer.argtypes = [wintypes.HWND, UINT_PTR, wintypes.UINT, ctypes.c_void_p]
     user32.KillTimer.argtypes = [wintypes.HWND, UINT_PTR]
@@ -174,6 +194,12 @@ if sys.platform == "win32":
     user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     user32.DestroyWindow.argtypes = [wintypes.HWND]
     user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
+    user32.CreatePopupMenu.restype = wintypes.HMENU
+    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, UINT_PTR, wintypes.LPCWSTR]
+    user32.TrackPopupMenu.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
+    user32.DestroyMenu.argtypes = [wintypes.HMENU]
     user32.UpdateLayeredWindow.argtypes = [
         wintypes.HWND,
         wintypes.HDC,
@@ -211,6 +237,8 @@ if sys.platform == "win32":
     ]
     gdiplus.GdipCreateHBITMAPFromBitmap.argtypes = [ctypes.c_void_p, ctypes.POINTER(wintypes.HBITMAP), wintypes.DWORD]
     gdiplus.GdipDisposeImage.argtypes = [ctypes.c_void_p]
+    shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
+    shell32.Shell_NotifyIconW.restype = wintypes.BOOL
 
     WS_POPUP = 0x80000000
     WS_EX_LAYERED = 0x00080000
@@ -218,6 +246,7 @@ if sys.platform == "win32":
     WS_EX_TOOLWINDOW = 0x00000080
     WS_EX_TOPMOST = 0x00000008
     WS_EX_NOACTIVATE = 0x08000000
+    SW_HIDE = 0
     SW_SHOW = 5
     WM_DESTROY = 0x0002
     WM_CLOSE = 0x0010
@@ -225,6 +254,8 @@ if sys.platform == "win32":
     WM_LBUTTONDOWN = 0x0201
     WM_NCLBUTTONDOWN = 0x00A1
     WM_KEYDOWN = 0x0100
+    WM_COMMAND = 0x0111
+    WM_USER = 0x0400
     VK_ESCAPE = 0x1B
     HTCAPTION = 2
     TIMER_ID = 1
@@ -234,7 +265,22 @@ if sys.platform == "win32":
     CS_VREDRAW = 0x0001
     CS_HREDRAW = 0x0002
     IDC_SIZEALL = 32646
+    IDI_APPLICATION = 32512
     MB_ICONERROR = 0x00000010
+    NIM_ADD = 0x00000000
+    NIM_DELETE = 0x00000002
+    NIF_MESSAGE = 0x00000001
+    NIF_ICON = 0x00000002
+    NIF_TIP = 0x00000004
+    WM_TRAYICON = WM_USER + 1
+    TRAY_UID = 1
+    WM_RBUTTONUP = 0x0205
+    WM_LBUTTONDBLCLK = 0x0203
+    MF_STRING = 0x00000000
+    MF_SEPARATOR = 0x00000800
+    TPM_RIGHTBUTTON = 0x00000002
+    IDM_TOGGLE_CAT = 1001
+    IDM_EXIT = 1002
 
     _state = None
     _wndproc = None
@@ -246,6 +292,8 @@ if sys.platform == "win32":
             self.frame_index = 0
             self.hwnd = None
             self.gdiplus_token = token
+            self.visible = (not config.start_hidden) or (not config.tray_icon)
+            self.tray_data = None
 
         def next_frame(self) -> Path:
             frame = self.frames[self.frame_index]
@@ -308,7 +356,12 @@ def run_windows(config: AppConfig) -> int:
 
     _state.hwnd = hwnd
     _render_next_frame(_state)
-    user32.ShowWindow(hwnd, SW_SHOW)
+    if config.tray_icon:
+        _add_tray_icon(_state)
+    if _state.visible:
+        user32.ShowWindow(hwnd, SW_SHOW)
+    else:
+        user32.ShowWindow(hwnd, SW_HIDE)
     user32.SetTimer(hwnd, TIMER_ID, max(10, int(1000 / max(1, config.fps))), None)
 
     msg = MSG()
@@ -322,8 +375,23 @@ def run_windows(config: AppConfig) -> int:
 
 def _window_proc(hwnd, msg, wparam, lparam):
     if msg == WM_TIMER and wparam == TIMER_ID and _state is not None:
-        _render_next_frame(_state)
+        if _state.visible:
+            _render_next_frame(_state)
         return 0
+    if msg == WM_TRAYICON:
+        if lparam == WM_RBUTTONUP:
+            _show_tray_menu(hwnd)
+        elif lparam == WM_LBUTTONDBLCLK:
+            _toggle_cat_visibility()
+        return 0
+    if msg == WM_COMMAND:
+        command_id = wparam & 0xFFFF
+        if command_id == IDM_TOGGLE_CAT:
+            _toggle_cat_visibility()
+            return 0
+        if command_id == IDM_EXIT:
+            user32.DestroyWindow(hwnd)
+            return 0
     if msg == WM_LBUTTONDOWN:
         user32.ReleaseCapture()
         user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
@@ -336,9 +404,55 @@ def _window_proc(hwnd, msg, wparam, lparam):
         return 0
     if msg == WM_DESTROY:
         user32.KillTimer(hwnd, TIMER_ID)
+        if _state is not None:
+            _remove_tray_icon(_state)
         user32.PostQuitMessage(0)
         return 0
     return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+
+def _add_tray_icon(state: WindowState) -> None:
+    icon = user32.LoadIconW(None, ctypes.c_void_p(IDI_APPLICATION))
+    data = NOTIFYICONDATAW()
+    data.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+    data.hWnd = state.hwnd
+    data.uID = TRAY_UID
+    data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+    data.uCallbackMessage = WM_TRAYICON
+    data.hIcon = icon
+    data.szTip = "XGG Desktop Cat"
+    if shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(data)):
+        state.tray_data = data
+
+
+def _remove_tray_icon(state: WindowState) -> None:
+    if state.tray_data is not None:
+        shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(state.tray_data))
+        state.tray_data = None
+
+
+def _toggle_cat_visibility() -> None:
+    if _state is None or _state.hwnd is None:
+        return
+    _state.visible = not _state.visible
+    user32.ShowWindow(_state.hwnd, SW_SHOW if _state.visible else SW_HIDE)
+    if _state.visible:
+        _render_next_frame(_state)
+
+
+def _show_tray_menu(hwnd) -> None:
+    if _state is None:
+        return
+    menu = user32.CreatePopupMenu()
+    toggle_text = "Hide Cat" if _state.visible else "Show Cat"
+    user32.AppendMenuW(menu, MF_STRING, IDM_TOGGLE_CAT, toggle_text)
+    user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
+    user32.AppendMenuW(menu, MF_STRING, IDM_EXIT, "Exit")
+    cursor = POINT()
+    user32.GetCursorPos(ctypes.byref(cursor))
+    user32.SetForegroundWindow(hwnd)
+    user32.TrackPopupMenu(menu, TPM_RIGHTBUTTON, cursor.x, cursor.y, 0, hwnd, None)
+    user32.DestroyMenu(menu)
 
 
 def _render_next_frame(state: WindowState) -> None:

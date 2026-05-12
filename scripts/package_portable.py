@@ -62,10 +62,13 @@ def write_readme(output_dir: Path, exe_mode: bool) -> None:
         text = """XGG Desktop Cat - portable EXE build
 
 How to run:
-1. Double-click run_desktop_cat.bat or desktop_cat.exe.
-2. Drag the cat with the left mouse button.
-3. Press Esc to exit.
-4. Edit config.toml to change size/fps/position.
+1. Double-click desktop_cat.exe.
+2. The app uses --windowed packaging, so no console window should open.
+3. The cat window is not shown as a normal taskbar window; use the system tray icon.
+4. Drag the cat with the left mouse button.
+5. Double-click the tray icon to show/hide the cat.
+6. Right-click the tray icon and choose Exit to close.
+7. Edit config.toml to change size/fps/position/tray settings.
 
 The target PC does not need Python, Rust, Cargo, FFmpeg, or Chocolatey.
 Keep config.toml and assets\\frames next to desktop_cat.exe.
@@ -76,8 +79,11 @@ Keep config.toml and assets\\frames next to desktop_cat.exe.
 How to run:
 1. Install Python 3 on the target PC if it is not already installed.
 2. Double-click run_desktop_cat.bat, or run: py -3 desktop_cat.py
-3. Drag the cat with the left mouse button.
-4. Press Esc to exit.
+3. The cat window appears in the system tray and not as a normal taskbar window.
+4. A console window may be visible in source mode; use EXE mode if you want no console.
+5. Drag the cat with the left mouse button.
+6. Double-click the tray icon to show/hide the cat.
+7. Right-click the tray icon and choose Exit to close.
 
 The target PC does not need Rust, Cargo, FFmpeg, or Chocolatey for runtime.
 FFmpeg is only needed if you want to convert a new video into PNG frames.

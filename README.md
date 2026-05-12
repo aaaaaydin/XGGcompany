@@ -63,8 +63,13 @@ py -3 desktop_cat.py
 
 运行后：
 
+- 小猫窗口使用工具窗口样式，不会出现在下方任务栏。
+- 直接用 `py -3 desktop_cat.py` 运行时可能会有命令行窗口；打包成 EXE 后不会显示命令行窗口。
+- 右下角系统托盘会出现 `XGG Desktop Cat` 图标。
 - 鼠标左键拖动小猫。
-- 按 `Esc` 退出。
+- 双击托盘图标可以显示/隐藏小猫。
+- 右键托盘图标可以选择 `Show/Hide Cat` 或 `Exit`。
+- 按 `Esc` 也可以退出。
 - 如果 `click_through = true`，鼠标会穿透小猫，但也不能拖动。
 
 ## 配置
@@ -79,6 +84,8 @@ click_through = false
 start_x = 1200
 start_y = 620
 frames_dir = "assets/frames"
+tray_icon = true
+start_hidden = false
 ```
 
 说明：
@@ -89,6 +96,8 @@ frames_dir = "assets/frames"
 - `click_through`：是否鼠标穿透。
 - `start_x` / `start_y`：启动位置。
 - `frames_dir`：PNG 帧目录。
+- `tray_icon`：是否显示系统托盘图标；建议保持 `true`，方便从托盘退出。
+- `start_hidden`：是否启动后先隐藏小猫，只保留托盘图标；设为 `true` 后可双击托盘图标显示小猫。
 
 ## 打包给别的电脑
 
@@ -134,7 +143,7 @@ py -3 scripts\package_portable.py --mode exe --zip
 dist/desktop-cat-portable.zip
 ```
 
-对方解压后双击 `run_desktop_cat.bat` 或 `desktop_cat.exe` 即可。
+对方解压后双击 `desktop_cat.exe` 即可。EXE 使用 `--windowed` 打包，不会打开命令行窗口；程序图标会在系统托盘里，右键托盘图标点 `Exit` 可以关闭。
 
 > PyInstaller 只需要装在你的打包电脑上；目标电脑不需要 Python、Rust、FFmpeg、Chocolatey。
 
