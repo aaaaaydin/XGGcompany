@@ -14,13 +14,19 @@
 2. **视频背景是纯色**：例如绿幕、蓝幕、纯白、纯黑背景。可以用 FFmpeg 的 chroma key 抠掉这个颜色。
 3. **普通视频，背景复杂**：FFmpeg 不能自动“智能抠猫”。需要先用剪映/CapCut、After Effects、DaVinci Resolve、Runway、Unscreen 等工具做背景移除，再导出带 alpha 的视频或 PNG 序列。
 
-### 方法 A：用项目自带 PowerShell 脚本（推荐）
+### 方法 A：用项目自带脚本（推荐，PowerShell 或 CMD 都行）
 
-先安装 FFmpeg，并确认 PowerShell 里能运行：
+先准备 FFmpeg。**不需要 Chocolatey**，Chocolatey 只是其中一种安装方式；你也可以下载 FFmpeg 的 zip 免安装版，解压后直接用里面的 `ffmpeg.exe`。
+
+如果你把 FFmpeg 加进了 PATH，可以在 PowerShell 或 CMD 里检查：
 
 ```powershell
 ffmpeg -version
 ```
+
+如果你不想配置 PATH，也可以把 `ffmpeg.exe` 放到项目里的 `tools\ffmpeg\bin\ffmpeg.exe`，然后用下面的 PowerShell `-FfmpegPath` 参数或 CMD 脚本传入这个 exe 路径。
+
+> 如果你看到 `杈撳叆瑙嗛...` 这种乱码 ParserError，通常是 Windows PowerShell 5.1 按系统 ANSI 编码读取 UTF-8 脚本导致的。本项目的 `.ps1` 已改成 ASCII-only 提示文本，更新脚本后重新运行即可。
 
 #### A1. 视频已经透明（你的透明通道 MP4 用这个）
 
@@ -40,6 +46,35 @@ powershell -ExecutionPolicy Bypass -File scripts\convert-video-to-frames.ps1 `
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\convert-video-to-frames.ps1 -Input "D:\cat\cat_alpha.mp4" -Mode Alpha -Fps 24 -Width 260 -Clean
 ```
+
+如果你没有把 FFmpeg 加进 PATH，而是使用免安装版本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\convert-video-to-frames.ps1 -Input "D:\cat\cat_alpha.mp4" -Mode Alpha -Fps 24 -Width 260 -Clean -FfmpegPath "tools\ffmpeg\bin\ffmpeg.exe"
+```
+
+##### 不想用 PowerShell：用 CMD 也可以
+
+如果 `ffmpeg` 已经在 PATH 里，打开 `cmd.exe` 运行：
+
+```bat
+scripts\convert-video-to-frames.cmd "D:\cat\cat_alpha.mp4" 24 260 assets\frames
+```
+
+如果你用的是免安装 FFmpeg，例如放在 `tools\ffmpeg\bin\ffmpeg.exe`：
+
+```bat
+scripts\convert-video-to-frames.cmd "D:\cat\cat_alpha.mp4" 24 260 assets\frames tools\ffmpeg\bin\ffmpeg.exe
+```
+
+你也可以完全不用脚本，直接运行 FFmpeg：
+
+```bat
+mkdir assets\frames 2>NUL
+tools\ffmpeg\bin\ffmpeg.exe -hide_banner -y -i "D:\cat\cat_alpha.mp4" -vf "fps=24,scale=260:-1:flags=lanczos,format=rgba" -start_number 1 "assets\frames\frame_%%04d.png"
+```
+
+> 在 PowerShell 里手写这条直接 FFmpeg 命令时，输出模板用 `frame_%04d.png`；在 CMD / `.cmd` 里要写成 `frame_%%04d.png`。
 
 运行成功后会生成：
 
@@ -114,6 +149,8 @@ assets/frames/frame_0003.png
 ## 发给别人电脑：免安装 / 不用配置环境
 
 你只需要在**自己的电脑**上把 EXE 和透明 PNG 帧都准备好，然后打包成一个便携文件夹发给别人。别人电脑上不需要安装 Rust、Cargo、FFmpeg、Chocolatey，也不需要运行转换脚本。
+
+PowerShell 不是运行桌面小猫的必要条件；它只是本项目提供的打包/转换辅助脚本。真正发给别人后，对方只需要双击 EXE。
 
 目标电脑只需要收到这个结构：
 
